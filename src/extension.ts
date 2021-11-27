@@ -6,6 +6,7 @@ import * as tar from 'tar-stream';
 import { pipeline } from 'stream';
 import { createReadStream } from 'fs';
 import { createGunzip } from 'zlib';
+import { Tarball } from './tar';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -36,40 +37,12 @@ class TarballContentProvider implements vscode.TextDocumentContentProvider {
 		console.log('providing text doc content', {uri: uri.fsPath});
 		return new Promise(async (resolve, reject) => {
 			try {
-				const entries = await this.listTarballContent(uri.fsPath);
+				const tarball = new Tarball(uri.fsPath);
+				const entries = await tarball.listContent();
 				console.log('got entries', {entries});
 				return resolve(entries.join('\n'));
 			} catch (err) {
 				console.log('failed to get content', {err});
-				reject(err);
-			}
-		});
-	}
-	private async listTarballContent(tarball: string): Promise<string[]> {
-		return await new Promise(async (resolve, reject) => {
-			try {
-				const extract = tar.extract();
-				const contents: string[] = [];
-				extract.on('entry', (header: any, stream: any, next: any) => {
-					if (header.type !== 'directory') {
-						contents.push(header.name);
-					}
-					stream.on('end', function() {
-						next(); // ready for next entry
-					});
-					stream.resume();
-				});
-				const streams = [
-					createReadStream(tarball),
-					tarball.endsWith('gz') ? createGunzip() : undefined,
-					extract
-				].filter(s => !!s);
-				pipeline(streams, err => {
-					console.log('finished pipeline', {err, contents});
-					if (err) {return reject(err);}
-					return resolve(contents);
-				});
-			} catch (err) {
 				reject(err);
 			}
 		});
