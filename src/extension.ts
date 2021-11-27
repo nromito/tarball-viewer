@@ -2,10 +2,6 @@
 // Import the module and reference it with the alias vscode in your code below
 import { parse } from 'path';
 import * as vscode from 'vscode';
-import * as tar from 'tar-stream';
-import { pipeline } from 'stream';
-import { createReadStream } from 'fs';
-import { createGunzip } from 'zlib';
 import { Tarball } from './tar';
 
 // this method is called when your extension is activated
