@@ -1,6 +1,11 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+import { parse } from 'path';
 import * as vscode from 'vscode';
+import * as tar from 'tar-stream';
+import { pipeline } from 'stream';
+import { createReadStream } from 'fs';
+import { createGunzip } from 'zlib';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -9,17 +14,66 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "tarball-viewer" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('tarball-viewer.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from tarball-viewer!');
+	context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('tarball', new TarballContentProvider));
+	const disposable = vscode.workspace.onDidOpenTextDocument(async doc => {
+		console.log('doc opened', {doc: doc.fileName});
+		const ext = parse(doc.fileName).ext;
+		if (ext !== '.tgz') {return;}
+		const uri = vscode.Uri.parse('tarball:' + doc.fileName);
+		const newdoc = await vscode.workspace.openTextDocument(uri); // calls back into the provider
+		await vscode.window.showTextDocument(newdoc, { preview: false });
 	});
-
 	context.subscriptions.push(disposable);
+}
+
+class TarballContentProvider implements vscode.TextDocumentContentProvider {
+	private emitter = new vscode.EventEmitter<vscode.Uri>();
+	onDidChange?: vscode.Event<vscode.Uri> | undefined;
+	constructor() {
+		this.onDidChange = this.emitter.event;
+	}
+	provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
+		console.log('providing text doc content', {uri: uri.fsPath});
+		return new Promise(async (resolve, reject) => {
+			try {
+				const entries = await this.listTarballContent(uri.fsPath);
+				console.log('got entries', {entries});
+				return resolve(entries.join('\n'));
+			} catch (err) {
+				console.log('failed to get content', {err});
+				reject(err);
+			}
+		});
+	}
+	private async listTarballContent(tarball: string): Promise<string[]> {
+		return await new Promise(async (resolve, reject) => {
+			try {
+				const extract = tar.extract();
+				const contents: string[] = [];
+				extract.on('entry', (header: any, stream: any, next: any) => {
+					if (header.type !== 'directory') {
+						contents.push(header.name);
+					}
+					stream.on('end', function() {
+						next(); // ready for next entry
+					});
+					stream.resume();
+				});
+				const streams = [
+					createReadStream(tarball),
+					tarball.endsWith('gz') ? createGunzip() : undefined,
+					extract
+				].filter(s => !!s);
+				pipeline(streams, err => {
+					console.log('finished pipeline', {err, contents});
+					if (err) {return reject(err);}
+					return resolve(contents);
+				});
+			} catch (err) {
+				reject(err);
+			}
+		});
+	}
 }
 
 // this method is called when your extension is deactivated
