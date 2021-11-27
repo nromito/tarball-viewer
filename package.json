@@ -1,7 +1,7 @@
 {
   "name": "tarball-viewer",
   "displayName": "tarball-viewer",
-  "description": "",
+  "description": "Allows you to inspect the contents of tarballs",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.62.0"
@@ -10,15 +10,20 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:tarball-viewer.helloWorld",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
+    "customEditors": [
       {
-        "command": "tarball-viewer.helloWorld",
-        "title": "Hello World"
+        "viewType": "tarball-viewer.tarballPreview",
+        "displayName": "Tarball Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.tgz"
+          }
+        ],
+        "priority": "default"
       }
     ]
   },
