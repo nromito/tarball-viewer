@@ -6,6 +6,7 @@
   "repository": {
     "url": "https://github.com/nromito/tarball-viewer"
   },
+  "publisher": "NickRomito",
   "engines": {
     "vscode": "^1.62.0"
   },
