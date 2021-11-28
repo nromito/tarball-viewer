@@ -3,6 +3,9 @@
   "displayName": "tarball-viewer",
   "description": "Allows you to inspect the contents of tarballs",
   "version": "0.0.1",
+  "repository": {
+    "url": "https://github.com/nromito/tarball-viewer"
+  },
   "engines": {
     "vscode": "^1.62.0"
   },
