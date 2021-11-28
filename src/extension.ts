@@ -25,8 +25,11 @@ class TarballEditorProvider implements vscode.CustomReadonlyEditorProvider<Tarba
       enableCommandUris: true,
     };
     return new Promise(async resolve => {
-      const links = (await document.getListing())
-        .map(file => `<a href=${document.getUriFor(file)}>${file}</a>`);
+      const links = await document.getListing()
+        .then(files => files.map(file => `<a href=${document.getUriFor(file)}>${file}</a>`))
+        .catch((err) => {
+          return [`<h1>Error opening file:</h1>\n<em>${err.toString()}</em>`];
+        });
       webviewPanel.webview.html = `
       <!DOCTYPE html>
       <html lang="en">
