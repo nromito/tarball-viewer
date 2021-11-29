@@ -30,6 +30,12 @@
         "selector": [
           {
             "filenamePattern": "*.tgz"
+          },
+          {
+            "filenamePattern": "*.tar"
+          },
+          {
+            "filenamePattern": "*.tar.gz"
           }
         ],
         "priority": "default"
